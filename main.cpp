@@ -1,127 +1,119 @@
-#include <SFML/Graphics.hpp>
-#include <time.h>
+#include "Playing_Field.h"
+#include "Menu.h"
+#include "Timer.h"
+#include <iostream>
+#include <string>
 
 using namespace sf;
-
+using namespace std;
 
 int main()
 {
-	//Р“РµРЅРµСЂР°С‚РѕСЂ СЃР»СѓС‡Р°Р№РЅС‹С… С‡РёСЃРµР»
+
+	//Генератор случайных чисел
 	srand(time(0));
-
-	RenderWindow app(VideoMode(400, 400), "Minesweeper!");
-
-	//РЁРёСЂРёРЅР° РєР»РµС‚РєРё
-	int w = 32;
-	int gridLogic[12][12];
-	int gridView[12][12];
-
+	
+	bool f_menu = true;
 	bool newgame = false;
+	int q = 0;
+	int min = 0;
+	int time = 0;
 
-	//Р—Р°РіСЂСѓР·РєР° С‚РµРєСЃС‚СѓСЂС‹ Рё СЃРѕР·РґР°РЅРёРµ СЃРїСЂР°Р№С‚Р°
+	cin >> q;
+	cin >> min;
+	cin >> time;
+
+	RenderWindow app(VideoMode(384, 384), "Minesweeper!");
+	menu(app);
+
+	Field f;
+	Timer timer;
+	timer.setup(time);
+	
+
+	//Загрузка текстуры и создание спрайта
 	Texture t;
 	t.loadFromFile("images/tiles.jpg");
 	Sprite s(t);
 
-	for (int i = 1; i <= 10; i++)
-		for (int j = 1; j <= 10; j++)
-		{
-			gridView[i][j] = 10;
-			if (rand() % 5 == 0)  gridLogic[i][j] = 9;
-			else gridLogic[i][j] = 0;
-		}
-	//РџРѕРґСЃС‡РµС‚ РјРёРЅ РІРѕРєСЂСѓРі РєР°Р¶РґРѕР№ РєР»РµС‚РєРё
-	for (int i = 1; i <= 10; i++)
-		for (int j = 1; j <= 10; j++)
-		{
-			int n = 0;
-			if (gridLogic[i][j] == 9) continue;
-			if (gridLogic[i + 1][j] == 9) n++;
-			if (gridLogic[i][j + 1] == 9) n++;
-			if (gridLogic[i - 1][j] == 9) n++;
-			if (gridLogic[i][j - 1] == 9) n++;
-			if (gridLogic[i + 1][j + 1] == 9) n++;
-			if (gridLogic[i - 1][j - 1] == 9) n++;
-			if (gridLogic[i - 1][j + 1] == 9) n++;
-			if (gridLogic[i + 1][j - 1] == 9) n++;
-			gridLogic[i][j] = n;
-		}
+	f.Resize(q);
+	app.setSize(Vector2u(f.Get_N()*f.Get_width()+96, f.Get_N()*f.Get_width()+96 )); //меняем размер
+	app.setView(View(Vector2f((f.Get_N()*f.Get_width()+96)/2 , (f.Get_N()*f.Get_width()+96)/2  ), Vector2f(f.Get_N()*f.Get_width()+96 , f.Get_N()*f.Get_width()+96 ))); //меняем вид
+	
+	f.Set_num_mines(min);
+	f.Create_Mines();
 
+	//Подсчет мин вокруг каждой клетки
+	f.Calculate_Mines();
+
+	timer.init();
 	while (app.isOpen())
-	{
-		//РџРѕР»СѓС‡Р°РµРј РєРѕРѕСЂРґРёРЅР°С‚С‹ РјС‹С€Рё РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ РѕРєРЅР° РЅР°С€РµРіРѕ РїСЂРёР»РѕР¶РµРЅРёСЏ
+	{		
+		app.setTitle("Minesweeper!   " + to_string(timer.remains()));
+		//Получаем координаты мыши относительно окна нашего приложения
 		Vector2i pos = Mouse::getPosition(app);
-		int x = pos.x / w;
-		int y = pos.y / w;
+		int x = pos.x / f.Get_width();
+		int y = pos.y / f.Get_width();
 
 		Event event;
 		while (app.pollEvent(event))
 		{
 			if (event.type == Event::Closed)
 				app.close();
-			//Р‘С‹Р»Р° РЅР°Р¶Р°С‚Р° РєРЅРѕРїРєР° РјС‹С€РёвЂ¦?
-			if (event.type == Event::MouseButtonPressed)
-				//Р•СЃР»Рё СЌС‚Рѕ - Р»РµРІР°СЏ РєРЅРѕРїРєР° РјС‹С€Рё, С‚Рѕ РѕС‚РєСЂС‹РІР°РµРј РєР»РµС‚РєСѓ
-				if (event.key.code == Mouse::Left) gridView[x][y] = gridLogic[x][y];
-			//Р•СЃР»Рё СЌС‚Рѕ вЂ“ РїСЂР°РІР°СЏ РєРЅРѕРїРєР° РјС‹С€Рё, С‚Рѕ РѕС‚РѕР±СЂР°Р¶Р°РµРј С„Р»Р°Р¶РѕРє
-				else if (event.key.code == Mouse::Right) gridView[x][y] = 11;
+			//Была нажата кнопка мыши…?
+			if (!f_menu && event.type == Event::MouseButtonPressed)
+				//Если это - левая кнопка мыши, то открываем клетку
+				if (event.key.code == Mouse::Left) f.Copy_Logic_To_View(x, y);
+			//Если это – правая кнопка мыши, то отображаем флажок
+				else if (event.key.code == Mouse::Right) if (f.Get_Field_View(x, y) == 10) f.Set_Field_View(x, y, 11);
+				else if (f.Get_Field_View(x, y) == 11) f.Set_Field_View(x, y, 10);
 
-			// Р‘С‹Р»Р° Р»Рё РЅР°Р¶Р°С‚Р° РєР»Р°РІРёС€Р° РЅР° РєР»Р°РІРёР°С‚СѓСЂРµ?
+			// Была ли нажата клавиша на клавиатуре?
 			if (event.type == Event::KeyPressed)
-				// Р­С‚Р° РєРЅРѕРїРєР° вЂ“ N?
-				if (event.key.code == Keyboard::N) newgame = true; //С‚РѕРіРґР° РЅРѕРІР°СЏ РёРіСЂР°
+				// Эта кнопка – N?
+				if (event.key.code == Keyboard::N) newgame = true; //тогда новая игра
+				/*else if (event.key.code == Keyboard::Up) //если была нажата кнопка ВВЕРХ
+				{
+					app.setSize(Vector2u(700, 700)); //меняем размер
+					app.setView(View(Vector2f(700 / 2.0, 700 / 2.0), Vector2f(700, 700))); //меняем вид
+					newgame = true;
+				}
+				else if (event.key.code == Keyboard::Down) //если была нажата кнопка ВНИЗ
+				{
+					app.setSize(Vector2u(384, 384)); //меняем размер
+					app.setView(View(Vector2f(384 / 2.0, 384 / 2.0), Vector2f(384, 384))); //меняем вид
+					newgame = true;
+				}*/
 		}
+		f_menu = false;
 
-		if (newgame)  //РЅРѕРІР°СЏ РёРіСЂР°
+		if (newgame)  //новая игра
 		{
-			for (int i = 1; i <= 10; i++)
-				for (int j = 1; j <= 10; j++)
-				{
-					gridView[i][j] = 10;
-					if (rand() % 5 == 0)  gridLogic[i][j] = 9;
-					else gridLogic[i][j] = 0;
-				}
-			//РџРѕРґСЃС‡РµС‚ РјРёРЅ РІРѕРєСЂСѓРі РєР°Р¶РґРѕР№ РєР»РµС‚РєРё
-			for (int i = 1; i <= 10; i++)
-				for (int j = 1; j <= 10; j++)
-				{
-					int n = 0;
-					if (gridLogic[i][j] == 9) continue;
-					if (gridLogic[i + 1][j] == 9) n++;
-					if (gridLogic[i][j + 1] == 9) n++;
-					if (gridLogic[i - 1][j] == 9) n++;
-					if (gridLogic[i][j - 1] == 9) n++;
-					if (gridLogic[i + 1][j + 1] == 9) n++;
-					if (gridLogic[i - 1][j - 1] == 9) n++;
-					if (gridLogic[i - 1][j + 1] == 9) n++;
-					if (gridLogic[i + 1][j - 1] == 9) n++;
-					gridLogic[i][j] = n;
-				}
+			f.Create_Mines();
+			//Подсчет мин вокруг каждой клетки
+			f.Calculate_Mines();
 			newgame = false;
+			timer.init();
 		}
 
-		//РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј Р±РµР»С‹Р№ С„РѕРЅ
+		//Устанавливаем белый фон
 		app.clear(Color::White);
 
-		for (int i = 1; i <= 10; i++)
-			for (int j = 1; j <= 10; j++)
+		for (int i = 1; i <= f.Get_N(); i++)
+			for (int j = 1; j <= f.Get_N(); j++)
 			{
-				if (gridView[i][j] == 9) gridView[i][j] = gridLogic[i][j];
-				//Р’С‹СЂРµР·Р°РµРј РёР· СЃРїСЂР°Р№С‚Р° РЅСѓР¶РЅС‹Р№ РЅР°Рј РєРІР°РґСЂР°С‚РёРє С‚РµРєСЃС‚СѓСЂС‹
-				s.setTextureRect(IntRect(gridView[i][j] * w, 0, w, w));
-				//РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј РµРіРѕ Р·Р°РґР°РЅРЅСѓСЋ РїРѕР·РёС†РёСЋвЂ¦
-				s.setPosition(i*w, j*w);
-				//вЂ¦ Рё РѕС‚СЂРёСЃРѕРІС‹РІР°РµРј
+				//if (f.Get_Field_View(i, j) ==9) f.Copy_Logic_To_View(i, j);
+				//Вырезаем из спрайта нужный нам квадратик текстуры
+				s.setTextureRect(IntRect(f.Get_Field_View(i, j) * f.Get_width(), 0, f.Get_width(), f.Get_width()));
+				//Устанавливаем его заданную позицию…
+				s.setPosition(i*f.Get_width(), j*f.Get_width());
+				//… и отрисовываем
 				app.draw(s);
 			}
-		//РѕС‚РѕР±СЂР°Р¶Р°РµРј РІСЃСЋ РєРѕРјРїРѕР·РёС†РёСЋ РЅР° СЌРєСЂР°РЅРµ
+		//отображаем всю композицию на экране
 		app.display();
+		
 	}
 
 	return 0;
 }
-
-
-
-
-
