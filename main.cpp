@@ -1,6 +1,7 @@
 #include "Playing_Field.h"
 #include "Menu.h"
 #include "Timer.h"
+#include "Mediator.h"
 #include <iostream>
 #include <string>
 
@@ -12,43 +13,42 @@ int main()
 
 	//Генератор случайных чисел
 	srand(time(0));
-	
+
 	bool f_menu = true;
 	bool newgame = false;
 	int q = 0;
 	int min = 0;
 	int time = 0;
 
-	cin >> q;
+	/*cin >> q;
 	cin >> min;
-	cin >> time;
+	cin >> time;*/
 
 	RenderWindow app(VideoMode(384, 384), "Minesweeper!");
-	menu(app);
-
-	Field f;
-	Timer timer;
-	timer.setup(time);
 	
 
+	Field f; //поле
+	Timer timer; //таймер
+	//timer.setup(time);
+	Mediator med(&f, &timer); //Медиатор
+
+	menu(app, med);
+	
 	//Загрузка текстуры и создание спрайта
 	Texture t;
 	t.loadFromFile("images/tiles.jpg");
 	Sprite s(t);
 
-	f.Resize(q);
-	app.setSize(Vector2u(f.Get_N()*f.Get_width()+96, f.Get_N()*f.Get_width()+96 )); //меняем размер
-	app.setView(View(Vector2f((f.Get_N()*f.Get_width()+96)/2 , (f.Get_N()*f.Get_width()+96)/2  ), Vector2f(f.Get_N()*f.Get_width()+96 , f.Get_N()*f.Get_width()+96 ))); //меняем вид
-	
-	f.Set_num_mines(min);
-	f.Create_Mines();
+	//f.Resize(q);
+	app.setSize(Vector2u(f.Get_N()*f.Get_width() + 96, f.Get_N()*f.Get_width() + 96)); //меняем размер
+	app.setView(View(Vector2f((f.Get_N()*f.Get_width() + 96) / 2, (f.Get_N()*f.Get_width() + 96) / 2), Vector2f(f.Get_N()*f.Get_width() + 96, f.Get_N()*f.Get_width() + 96))); //меняем вид
 
-	//Подсчет мин вокруг каждой клетки
-	f.Calculate_Mines();
+	//f.Set_num_mines(min);
 
-	timer.init();
+	med.New_Game();
+
 	while (app.isOpen())
-	{		
+	{
 		app.setTitle("Minesweeper!   " + to_string(timer.remains()));
 		//Получаем координаты мыши относительно окна нашего приложения
 		Vector2i pos = Mouse::getPosition(app);
@@ -62,16 +62,15 @@ int main()
 				app.close();
 			//Была нажата кнопка мыши…?
 			if (!f_menu && event.type == Event::MouseButtonPressed)
-				//Если это - левая кнопка мыши, то открываем клетку
-				if (event.key.code == Mouse::Left) f.Copy_Logic_To_View(x, y);
-			//Если это – правая кнопка мыши, то отображаем флажок
-				else if (event.key.code == Mouse::Right) if (f.Get_Field_View(x, y) == 10) f.Set_Field_View(x, y, 11);
-				else if (f.Get_Field_View(x, y) == 11) f.Set_Field_View(x, y, 10);
+				//Если это - левая кнопка мыши, то передаем в медиатор левую кнопку
+				if (event.key.code == Mouse::Left) med.Left_Mouse_Pressed(x, y);
+			//Если это – правая кнопка мыши, то передаем в медиатор правую кнопку
+				else if (event.key.code == Mouse::Right) med.Right_Mouse_Pressed(x, y);
 
 			// Была ли нажата клавиша на клавиатуре?
 			if (event.type == Event::KeyPressed)
 				// Эта кнопка – N?
-				if (event.key.code == Keyboard::N) newgame = true; //тогда новая игра
+				if (event.key.code == Keyboard::N) med.New_Game(); //тогда новая игра
 				/*else if (event.key.code == Keyboard::Up) //если была нажата кнопка ВВЕРХ
 				{
 					app.setSize(Vector2u(700, 700)); //меняем размер
@@ -86,15 +85,6 @@ int main()
 				}*/
 		}
 		f_menu = false;
-
-		if (newgame)  //новая игра
-		{
-			f.Create_Mines();
-			//Подсчет мин вокруг каждой клетки
-			f.Calculate_Mines();
-			newgame = false;
-			timer.init();
-		}
 
 		//Устанавливаем белый фон
 		app.clear(Color::White);
@@ -112,6 +102,11 @@ int main()
 			}
 		//отображаем всю композицию на экране
 		app.display();
+
+		if (med.End_Game())
+		{
+			//med.New_Game();
+		}
 		
 	}
 

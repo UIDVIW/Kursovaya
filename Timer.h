@@ -5,7 +5,6 @@ class Timer
 {
 private:
 	int game_end_t; // время окончания игры относительно запуска программы
-	//int current_t; // текущее время от запуска программы
 	int setup_t; // выбранное пользователем время 
 public:
 	void init();
