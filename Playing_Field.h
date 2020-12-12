@@ -44,7 +44,7 @@ Field::~Field()
 		delete[] gridLogic[i];
 		delete[] gridView[i];
 	}
-
+	
 	delete[] gridLogic;
 	delete[] gridView;
 }
@@ -125,21 +125,35 @@ void Field::Copy_Logic_To_View(int i, int j)
 
 void Field::Resize(int n)
 {
+	// если была выделена память, то очищаем для выделения памяти другого размера
+	if (gridLogic != NULL && gridView != NULL)
+	{
+		for (int i = 0; i < N + 2; i++)
+		{
+			delete[] gridLogic[i];
+			delete[] gridView[i];
+		}
+		delete[] gridLogic;
+		delete[] gridView;
+	}
+
 	N = n;
-	gridLogic = new int*[N+2];
+	gridLogic = new int*[N+2]; 
 	gridView = new int*[N + 2];
+
+	if (gridLogic == NULL || gridView == NULL)
+		throw "No memory was allocated.";
 
 	for (int i = 0; i < N + 2; i++)
 	{
 		gridLogic[i] = new int[N+2];
-		gridView[i] = new int[N + 2]; 
+		gridView[i] = new int[N + 2];
+		if (gridLogic[i] == NULL || gridView[i] == NULL)
+			throw "No memory was allocated.";
 	}
 }
 
 void Field::Set_num_mines(int n) 
 {
-	//if (n >= N*N*0.6)
-		//n = (int)(N*N*0.6);
 	num_mines = n;
-	
 }
