@@ -1,11 +1,4 @@
-#include "Playing_Field.h"
-#include "Menu.h"
-#include "Timer.h"
 #include "Mediator.h"
-#include <iostream>
-
-
-
 
 int main()
 {
